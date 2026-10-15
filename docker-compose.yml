@@ -1,0 +1,20 @@
+services:
+  mcp-server:
+    build: .
+    container_name: mcp-file-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mounts your local workspace so agents read/write directly to your machine
+      - ./workspace:/app/workspace
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: mcp-tunnel
+    restart: unless-stopped
+    command: http --url=https://hurry-replace-audio.ngrok-free.dev mcp-server:8000
+    environment:
+      - NGROK_AUTHTOKEN=3Kj8VWrgdVlkt8OcAtHE9xsrTVU_49D4RAPw7xQb2SzxF3D4H
+    depends_on:
+      - mcp-server

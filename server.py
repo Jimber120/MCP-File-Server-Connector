@@ -1,106 +1,150 @@
 import os
 import subprocess
 from pathlib import Path
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import Field
 
-# 1. Initialize the Server
-mcp = FastMCP("SecureFileServer")
+# 1. Initialize the MCP 2.x Server
+mcp = MCPServer("SecureFileServer")
 
-# 2. Set up the Sandboxed Workspace Root
-WORKSPACE_ROOT = Path("./workspace").resolve()
-WORKSPACE_ROOT.mkdir(exist_ok=True)
+# 2. Pin the Sandboxed Workspace Root to the explicit folder created in Phase 2
+BASE_DIR = Path(__file__).resolve().parent
+WORKSPACE_ROOT = (BASE_DIR / "workspace").resolve()
+
+# Fallback: ensure the folder exists if deleted
+WORKSPACE_ROOT.mkdir(parents=True, exist_ok=True)
 
 def _get_safe_path(rel_path: str) -> Path:
-    """Security check to ensure agents cannot access files outside the workspace folder."""
-    target_path = (WORKSPACE_ROOT / rel_path).resolve()
+    """
+    Resolves the target file path and strictly enforces that it cannot
+    escape WORKSPACE_ROOT (defends against directory traversal like ../../).
+    """
+    clean_rel = rel_path.lstrip("/\\")
+    target_path = (WORKSPACE_ROOT / clean_rel).resolve()
+    
     if not target_path.is_relative_to(WORKSPACE_ROOT):
-        raise ValueError("Security violation: Access denied to path outside sandbox.")
+        raise PermissionError(f"Security violation: Access denied outside sandbox: {rel_path}")
     return target_path
 
-# 3. Define the 8 Required Tools
+# ==========================================================
+# 3. Implement the 8 Required Tools
+# ==========================================================
 
+# Tool 1: list_files
 @mcp.tool()
 def list_files() -> list[str]:
-    """List all files and directories recursively inside the workspace."""
-    return [str(p.relative_to(WORKSPACE_ROOT)) for p in WORKSPACE_ROOT.rglob("*") if p.is_file()]
+    """List all files currently tracked inside the workspace sandbox."""
+    return [
+        str(p.relative_to(WORKSPACE_ROOT)).replace("\\", "/")
+        for p in WORKSPACE_ROOT.rglob("*")
+        if p.is_file() and not p.parts[len(WORKSPACE_ROOT.parts):][0].startswith(".git")
+    ]
 
+# Tool 2: read_file
 @mcp.tool()
-def read_file(path: str = Field(description="Name of the file to read")) -> str:
-    """Read the text content of a file."""
+def read_file(path: str = Field(description="Relative path of the file to read")) -> str:
+    """Read and return the plain text contents of a file."""
     safe_path = _get_safe_path(path)
     if not safe_path.exists():
-        return f"Error: File {path} not found."
+        return f"Error: File '{path}' does not exist."
     return safe_path.read_text(encoding="utf-8")
 
+# Tool 3: write_file
 @mcp.tool()
-def write_file(path: str = Field(description="Name of the file to write"), 
-               content: str = Field(description="Text content to save")) -> str:
-    """Create or overwrite a file with new text content."""
+def write_file(
+    path: str = Field(description="Relative path of the file to write"),
+    content: str = Field(description="Exact text content to write")
+) -> str:
+    """Write or overwrite text content to a file inside the sandbox."""
     safe_path = _get_safe_path(path)
     safe_path.parent.mkdir(parents=True, exist_ok=True)
     safe_path.write_text(content, encoding="utf-8")
-    return f"Success: Wrote data to {path}"
+    return f"Success: Wrote {len(content)} characters to '{path}'."
 
+# Tool 4: str_replace
 @mcp.tool()
-def str_replace(path: str, old_str: str, new_str: str) -> str:
-    """Replace an exact word or phrase in a file. Fails if the phrase appears multiple times."""
+def str_replace(
+    path: str = Field(description="Relative path to file"),
+    old_str: str = Field(description="Exact string snippet to match"),
+    new_str: str = Field(description="Replacement string")
+) -> str:
+    """Replace an exact unique occurrence of old_str with new_str."""
     safe_path = _get_safe_path(path)
-    content = safe_path.read_text(encoding="utf-8")
-    count = content.count(old_str)
-    if count == 0:
-        return f"Error: '{old_str}' not found in {path}."
-    if count > 1:
-        return f"Error: '{old_str}' appears {count} times. You must be more specific."
+    if not safe_path.exists():
+        return f"Error: File '{path}' does not exist."
     
-    new_content = content.replace(old_str, new_str)
-    safe_path.write_text(new_content, encoding="utf-8")
-    return f"Success: Updated text in {path}"
+    content = safe_path.read_text(encoding="utf-8")
+    matches = content.count(old_str)
+    
+    if matches == 0:
+        return f"Error: '{old_str}' not found in '{path}'."
+    if matches > 1:
+        return f"Error: '{old_str}' matches {matches} occurrences. Make old_str more specific."
+    
+    updated_content = content.replace(old_str, new_str, 1)
+    safe_path.write_text(updated_content, encoding="utf-8")
+    return f"Success: Replaced occurrence in '{path}'."
 
+# Tool 5: delete_file
 @mcp.tool()
-def delete_file(path: str) -> str:
-    """Delete a file from the workspace."""
+def delete_file(path: str = Field(description="Relative path of file to delete")) -> str:
+    """Safely delete a file inside the sandbox."""
     safe_path = _get_safe_path(path)
     if safe_path.is_file():
         safe_path.unlink()
-        return f"Success: Deleted {path}"
-    return f"Error: Cannot delete {path}."
+        return f"Success: File '{path}' deleted."
+    return f"Error: Cannot delete '{path}'. File not found."
 
+# Tool 6: search_code
 @mcp.tool()
-def search_code(keyword: str) -> str:
-    """Search for a specific keyword inside all files in the workspace."""
-    results = []
+def search_code(keyword: str = Field(description="Sub-string to search across files")) -> str:
+    """Search for a keyword inside all non-hidden workspace files."""
+    matches = []
     for filepath in WORKSPACE_ROOT.rglob("*"):
-        if filepath.is_file():
+        if filepath.is_file() and not any(part.startswith(".") for part in filepath.parts):
             try:
-                content = filepath.read_text(encoding="utf-8")
-                if keyword in content:
-                    results.append(str(filepath.relative_to(WORKSPACE_ROOT)))
-            except UnicodeDecodeError:
+                text = filepath.read_text(encoding="utf-8", errors="ignore")
+                if keyword in text:
+                    rel = str(filepath.relative_to(WORKSPACE_ROOT)).replace("\\", "/")
+                    matches.append(rel)
+            except Exception:
                 continue
-    if not results:
-        return f"No files found containing '{keyword}'."
-    return f"Found '{keyword}' in: " + ", ".join(results)
+    if not matches:
+        return f"No matches found for '{keyword}'."
+    return f"Found '{keyword}' in: " + ", ".join(matches)
 
+# Tool 7: git_status
 @mcp.tool()
 def git_status() -> str:
-    """Check the status of tracked and untracked files in the workspace."""
+    """Check the Git working tree status inside the workspace."""
     try:
-        result = subprocess.run(["git", "status", "-s"], cwd=WORKSPACE_ROOT, capture_output=True, text=True)
-        return result.stdout if result.stdout else "Working directory clean."
+        proc = subprocess.run(
+            ["git", "status", "--short"],
+            cwd=WORKSPACE_ROOT,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        output = proc.stdout.strip()
+        return output if output else "Workspace clean. No uncommitted changes."
     except Exception as e:
         return f"Git error: {str(e)}"
 
+# Tool 8: git_commit
 @mcp.tool()
-def git_commit(message: str) -> str:
-    """Stage all changes and commit them with a descriptive message."""
+def git_commit(message: str = Field(description="Commit message")) -> str:
+    """Stage all changes inside workspace and create a Git commit."""
     try:
         subprocess.run(["git", "add", "."], cwd=WORKSPACE_ROOT, check=True)
-        subprocess.run(["git", "commit", "-m", message], cwd=WORKSPACE_ROOT, check=True)
-        return f"Success: Committed changes with message: '{message}'"
+        proc = subprocess.run(
+            ["git", "commit", "-m", message],
+            cwd=WORKSPACE_ROOT,
+            capture_output=True,
+            text=True
+        )
+        return proc.stdout.strip() if proc.stdout else "Commit complete."
     except Exception as e:
-        return f"Git commit failed: Ensure git is initialized. Error: {str(e)}"
+        return f"Commit error: {str(e)}"
 
 if __name__ == "__main__":
-    # Start the server using Streamable HTTP on port 8000
-    mcp.run(transport="sse", host="0.0.0.0", port=8000)
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)
