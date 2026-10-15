@@ -14,3 +14,7 @@
   - [x] Added a click listener on each `<li>` that toggles `text-decoration: line-through`.
   - [x] Confirmed `index.html` is intact and clean.
   - [x] Feature complete; verified by code inspection (live browser click-test still recommended).
+- [x] Session 4: Drafted comprehensive beginner-friendly README.md
+  - [x] Audited PROJECT_STATE.md, PLAN_LOG.md, and the file list (DECISIONS.md and CHECKPOINTS.md are empty).
+  - [x] Documented prerequisites, setup, the 8-tool reference, `_get_safe_path()`, ngrok deployment, and the multi-session log.
+  - [x] Caveat: `server.py` is not in the workspace, so the reference server code and Session 1-3 prompts in the README are reconstructed, not verified. Test before relying on them.
