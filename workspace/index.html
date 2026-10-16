@@ -3,10 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Items</title>
+  <title>Grocery Catalog</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Items</h1>
+  <h1>Grocery Catalog</h1>
+  <div id="toolbar" class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search groceries by name..." aria-label="Search groceries by name">
+    <select id="categoryFilter" aria-label="Filter by category">
+      <option value="all">All Categories</option>
+      <option value="Produce">Produce</option>
+      <option value="Dairy">Dairy</option>
+      <option value="Bakery">Bakery</option>
+      <option value="Beverages">Beverages</option>
+      <option value="Pantry">Pantry</option>
+      <option value="Meat">Meat</option>
+      <option value="Snacks">Snacks</option>
+      <option value="Frozen">Frozen</option>
+      <option value="Household">Household</option>
+    </select>
+    <span id="itemCount" aria-live="polite">Showing: 100 items</span>
+  </div>
+  <div id="summary" class="summary" aria-live="polite">
+    <div class="summary-stat">
+      <span class="summary-label">Displayed</span>
+      <span class="summary-value" id="summaryShown">100 of 100</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-label">Purchased</span>
+      <span class="summary-value" id="summaryPurchased">0 items</span>
+    </div>
+    <div class="summary-stat">
+      <span class="summary-label">Purchased total</span>
+      <span class="summary-value" id="summaryTotal">$0.00</span>
+    </div>
+  </div>
+  <p id="emptyState" class="empty-state" role="status" hidden>No items match your search. Try a different name or choose another category.</p>
   <ul id='items'></ul>
 <script src='app.js'></script>
 </body>
