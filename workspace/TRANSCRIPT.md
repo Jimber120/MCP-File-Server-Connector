@@ -202,7 +202,7 @@ A session-by-session record of tasks in this workspace.
 10. `create_file` x3 in the sandbox (`app.js`, `index.html`, `test.js`) and `bash_tool` x2: ran the headless test, then a mutation check.
 11. `str_replace` x4 on `PLAN_LOG.md`, x3 on `PROJECT_STATE.md`, x10 on `README.md`.
 12. `read_file`: `TRANSCRIPT.md` (again, just before appending), then `str_replace` to add this entry.
-13. `git_commit` and a `git_status` afterwards. Their results are not recorded here because they happen after this entry is written.
+13. After the records request below: `list_files`, `git_status`, and a failed `str_replace` on `README.md`. **No `git_commit` was attempted** (see the end of this entry).
 
 **Testing approach and results**
 - **What ran.** The real `index.html` loaded in jsdom with `runScripts: "dangerously"` and `resources: "usable"`, so the real `app.js` executed against the real markup. Typing and category changes were simulated by setting the control's value and dispatching `input` or `change` events; clicks by dispatching `click`.
@@ -216,7 +216,16 @@ A session-by-session record of tasks in this workspace.
 - **Empty state.** A `hidden` paragraph with `role="status"`, toggled with the `hidden` property in `renderList()`. The CSS deliberately sets no `display` on `.empty-state`, because a `display` value would override the `hidden` attribute and the message would never disappear.
 - **Placeholder reworded.** "Search 100 groceries..." became "Search groceries by name...", following the plan's suggestion, so the text does not go stale if the catalog size changes. This replaces the exact placeholder text specified in Session 8's instructions.
 
-**Git observation.** At the start of this session `git_status` showed `M ` on `PLAN_LOG.md`, `PROJECT_STATE.md`, `README.md`, `app.js`, `index.html` and `A ` on `TRANSCRIPT.md`, `style.css`, `test.txt`: staged, but not committed. Session 9's own pre-commit status showed the same kind of pattern (`TRANSCRIPT.md` and `test.txt` as newly added). Together this suggests the "Commit complete" results reported in Sessions 5-9 did not all create commits, even though `git add .` ran. `git_commit` returns no hash and the file server exposes no `git log`, so this could not be diagnosed. After this session's commit, `git_status` was checked and its result is reported to the user, not recorded here.
+**Records request (same session).** The user then asked the agent to review all sessions and record each in `CHECKPOINTS.md` and `DECISIONS.md`.
+- **Tools:** `read_file` on both files (both empty, as expected); `write_file` for `CHECKPOINTS.md` (8,016 characters) and `DECISIONS.md` (12,228 characters); `str_replace` x5 on `DECISIONS.md` to fix cross-references; then `str_replace` on `PROJECT_STATE.md`, `PLAN_LOG.md`, and `CHECKPOINTS.md` to update them.
+- **What they contain.** `CHECKPOINTS.md`: 10 checkpoints plus the unnumbered `test.txt` edit, each with what was delivered, its verification level, and git status; a "Git history" warning; and open items. `DECISIONS.md`: 33 decisions, each with the reasoning, any rejected alternative, and a status (Active, Superseded, or Process), plus a table of the four reversed decisions.
+- **Provenance.** Sessions 7 and 9 were done by another agent, so they are marked Logged (taken from this file and from the files on disk), not Direct. Sessions 2-4 stay Reconstructed.
+- **A mistake the agent made and fixed.** Five cross-references in `DECISIONS.md` were wrong when first written: three pointed at D20 where the superseding decision is D28, and one pointed at D15 where D17 was meant. They were corrected, and the project-state note records it.
+- **Another mistake, caught before it spread.** While updating the logs, the agent first wrote that git "was failing when the agent tried" to commit, but it had only run `git_status`. It corrected this in `CHECKPOINTS.md` and `PROJECT_STATE.md`. It also found that two edits had been aimed at the wrong file (they failed harmlessly because the text was not there).
+
+**`README.md` disappeared.** While updating the README's section 8 file table, `str_replace` reported that `README.md` does not exist, and `list_files` confirmed it was gone. The agent had edited it successfully many times earlier in the session and never called `delete_file`. `git_status` was failing with exit status 128 at that moment, so git could not show what happened. The agent did not recreate the file, because it could not tell whether someone had removed it on purpose. All Session 10 README edits were lost with it, and the final table-row edit was never applied.
+
+**Git observation.** At the start of this session `git_status` showed `M ` on `PLAN_LOG.md`, `PROJECT_STATE.md`, `README.md`, `app.js`, `index.html` and `A ` on `TRANSCRIPT.md`, `style.css`, `test.txt`: staged, but not committed. Session 9's own pre-commit status showed the same kind of pattern (`TRANSCRIPT.md` and `test.txt` as newly added). Together this suggests the "Commit complete" results reported in Sessions 5-9 did not all create commits, even though `git add .` ran. `git_commit` returns no hash and the file server exposes no `git log`, so this could not be diagnosed. No commit was attempted at the end of the session (see the README note above and `PLAN_LOG.md`); `git_status` failed again with exit 128 later in the session.
 
 **Not done**
 - **No real-browser check.** The page's appearance is still unseen.
@@ -224,6 +233,7 @@ A session-by-session record of tasks in this workspace.
 - **`server.py`.** The reconstructed copy in `README.md` section 4.3 is still unverified.
 
 **Final state declaration**
-- **Planned work:** complete (Sessions 1-9). **Optional follow-ups:** complete (Session 10), apart from the open items above.
-- **Files:** `index.html`, `app.js`, `style.css`, `README.md`, `PROJECT_STATE.md`, `PLAN_LOG.md`, `TRANSCRIPT.md`, `test.txt` (unrelated), `DECISIONS.md` (empty), `CHECKPOINTS.md` (empty).
+- **Planned work:** complete (Sessions 1-9). **Optional follow-ups:** complete (Session 10), apart from the open items above and the two problems below.
+- **Files:** `index.html`, `app.js`, `style.css`, `PROJECT_STATE.md`, `PLAN_LOG.md`, `TRANSCRIPT.md`, `CHECKPOINTS.md` and `DECISIONS.md` (both filled in Session 10), `test.txt` (unrelated). **`README.md` is missing** (see above).
+- **Uncommitted:** all Session 10 work. Git is failing (exit 128) and committing now would record the README as deleted.
 - **Next session:** none scheduled.

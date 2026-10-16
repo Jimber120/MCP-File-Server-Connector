@@ -17,12 +17,15 @@ Session 9 completed the planned milestones. Session 10, requested by the user af
 - [x] Added an empty-state message: `<p id="emptyState" class="empty-state" role="status" hidden>` in `index.html`, styled in `style.css` (no `display` set, so `hidden` keeps working), toggled by `renderList()` in `app.js`. Shown for no matches, hidden again when results return.
 - [x] Renamed the `<h1>` and `<title>` from "Items" to "Grocery Catalog", and reworded the search placeholder from "Search 100 groceries..." to "Search groceries by name..." so it no longer hard-codes the count.
 - [x] `README.md` section 7 updated (empty state, no inline styles, test result, remaining limitations).
+- [x] Records: reviewed Sessions 1-10 and wrote `CHECKPOINTS.md` (state, verification level, and git status per session) and `DECISIONS.md` (33 decisions with reasoning and status). Sessions 7 and 9 were done by another agent and are marked Logged, not Direct. Both files had been empty since Session 4.
 
 ### Still open
 - [ ] Look at the page in a real browser. jsdom runs the JavaScript and DOM but does not lay out or paint, so the following have still never been seen by anyone: the card grid, badge colors, hover lift, the purchased dimming and strike-through, the toolbar and summary layout, and the 480px mobile layout. The CSS was only checked by reading it, and this session changed it (removed `!important`, added `.empty-state`).
 - [ ] The headless test lives only in the agent's sandbox, not in the workspace, so you cannot re-run it. It can be added to the workspace if wanted.
 - [ ] Store the real `server.py` in the repo and replace the reconstructed copy in `README.md` section 4.3 (Session 1-3 prompts there are also reconstructed).
-- [ ] Verify the git history. At the start of Session 10, `git_status` showed `PLAN_LOG.md`, `PROJECT_STATE.md`, `README.md`, `app.js`, `index.html` as staged modifications and `TRANSCRIPT.md`, `style.css`, `test.txt` as staged additions, which means the Sessions 5-9 commits reported as "Commit complete" may not be in history. `git_commit` only returns "Commit complete" (no hash), so after every commit run `git_status` and expect a clean tree; the Session 10 commit was checked this way.
+- [ ] Verify the git history. At the start of Session 10, `git_status` showed `PLAN_LOG.md`, `PROJECT_STATE.md`, `README.md`, `app.js`, `index.html` as staged modifications and `TRANSCRIPT.md`, `style.css`, `test.txt` as staged additions, which means the Sessions 5-9 commits reported as "Commit complete" may not be in history. `git_commit` only returns "Commit complete" (no hash), so after every commit run `git_status` and expect a clean tree. **No Session 10 commit was made** (see below).
+- [ ] **`README.md` is missing from the workspace.** It was edited many times during Session 10 and then disappeared; the agent never deleted it, and `git_status` was failing (exit 128) so the cause could not be checked. Decide whether it was removed on purpose; if not, restore it (`git checkout -- README.md` if it was ever committed) or ask for it to be recreated. The Session 10 README edits were lost with it.
+- [ ] Commit the Session 10 work once `git_status` works and the README question is settled (committing now would record the README as deleted).
 
 ## Completed
 - [x] Session 1: Created `index.html` and initialized handoff logs.

@@ -69,6 +69,7 @@
 - Testing: ran the real page headlessly in jsdom 30.1.3 on Node 22. 50 checks, 50 passed (render, filters, combined filters, click and un-click, marks surviving filters and searches, summary count and exact-cent total including all 100 marked at $682.50, empty state, determinism, no inline `style` attributes). A mutation check (breaking the purchased-state and empty-state code on purpose) produced failures in exactly the expected tests. The test files live in the agent's sandbox only, not in the workspace.
 - Not verified: jsdom does not lay out or paint, so the CSS (grid, colors, hover, purchased dimming and strike-through, 480px mobile layout) has still not been seen in a real browser, and this session changed it.
 - The test copies of `app.js` and `index.html` were re-typed from the workspace files, not byte-compared.
+- Later in Session 10, at the user's request, reviewed all sessions and filled the two files that had been empty since Session 4: `CHECKPOINTS.md` (10 checkpoints plus the between-5-and-6 `test.txt` edit, a git-history warning, and open items) and `DECISIONS.md` (33 decisions, each marked Active, Superseded, or Process, with a table of the four reversed ones). Sessions 7 and 9 were done by another agent, so their entries are marked Logged (taken from `TRANSCRIPT.md` and the files on disk), not Direct. While writing, five cross-references in `DECISIONS.md` were found to be wrong (pointing at D20 and D15 instead of D28 and D17) and were corrected.
 
 ## Final Status: 100% of planned milestones complete
 | Milestone | Session | Status |
@@ -87,15 +88,18 @@ All planned work is delivered. The project has no scheduled next session. Open i
 - `index.html` (links `style.css`; toolbar, summary bar, empty-state message, and the list)
 - `app.js` (100-item grocery generator, renderer, live search/category filter, summary metrics, empty state; no inline styles)
 - `style.css` (card grid, per-category badge colors, `.purchased` styling, toolbar, summary bar, empty state, mobile rules; no `!important`)
-- `README.md` (rewritten in Session 9 for the grocery catalog and Session 1-9 collaboration)
+- `README.md` (**MISSING from the workspace at the end of Session 10**; was rewritten in Session 9 and edited in Session 10; see Notes)
 - `PROJECT_STATE.md`
 - `PLAN_LOG.md`
 - `TRANSCRIPT.md`
 - `test.txt` (unrelated to the project; contains the date `Friday, October 16, 2026`)
-- `DECISIONS.md` (empty)
-- `CHECKPOINTS.md` (empty)
+- `DECISIONS.md` (33 numbered decisions across Sessions 1-10 with reasoning, alternatives, and status; written in Session 10)
+- `CHECKPOINTS.md` (state, verification level, and git status at the end of each session; written in Session 10)
 
 ## Notes
 - All planned milestones are complete as of Session 9, and the optional follow-ups were completed in Session 10. There is no scheduled next session.
 - Still open: view the page in a real browser (the headless test ran the logic but not the visuals); optionally save the headless test into the workspace; replace the reconstructed `server.py` in `README.md` section 4.3 with the real one (the Session 1-3 prompts there are also reconstructed).
 - `git_commit` only reports "Commit complete". Run `git_status` afterwards and expect a clean tree.
+- **Unresolved at the end of Session 10:** `README.md` was edited successfully many times during the session, but was gone from the workspace when the agent tried to make one more edit: `list_files` no longer showed it and `str_replace` reported that it does not exist. The agent never called `delete_file`. At the same time `git_status` was failing with exit status 128 again, so git could not be used to see what happened. The agent did not recreate the README, because it could not tell whether the deletion was deliberate.
+  - All the other Session 10 README edits (intro, honesty note, session table, features table, code map, customizing, section 7.6) were applied before the file vanished, so they are lost with it. The final edit, updating the `DECISIONS.md` and `CHECKPOINTS.md` rows in the README's section 8 file table, was never applied.
+  - The Session 10 commit was **not attempted**, deliberately: `git_commit` runs `git add .` and would have recorded the missing `README.md` as a deletion.
